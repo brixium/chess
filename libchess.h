@@ -97,10 +97,10 @@ void initCB(){
 void printCB(){
 	int i, j;
 
-	printf("\n| ");
+	printf("| ");
 	for(i=0; i<CBL; i++)
 		printf("|%c", 'a'+i);
-	printf("|\n");
+	printf("| |\n");
 
 	for(i=0; i<CBL; i++){
 		printf("|%d", i+1);
@@ -112,8 +112,13 @@ void printCB(){
 			else
 				printf("|%c", cboard[i][j].name);
 		}
-		printf("|\n");
+		printf("|%d|\n", i+1);
 	}
+	printf("| ");
+	for(i=0; i<CBL; i++)
+		printf("|%c", 'a'+i);
+	printf("| |\n");
+
 	return;
 }
 
@@ -157,13 +162,12 @@ int horizontalMovement(piece p, int x, int y){
 	return 0;
 }
 
-int diagonalMovement(piece p, int x, int y){
+int diagonalMovement(piece p, int x, int y){ /*Il bishop può saltare i pezzi adiacenti*/
 	int i, j;
 	if(cboard[x][y].color == p.color)
 		return 0;
 	if(abs(p.y-y) != abs(p.x-x))
 		return 0;
-	/*This part still needs a good read*/
 	if(p.y > y && p.x > x){ /*From bottom right to upper left*/
 		for(i=x+1, j=y+1; i<p.x && j<p.y; i++, j++)
 			if(cboard[i][j].name != ' ')
@@ -173,15 +177,20 @@ int diagonalMovement(piece p, int x, int y){
 			if(cboard[i][j].name != ' ')
 				return 0;
 
-	}else if(p.y < y && p.x > x){
-		
-	}else if(p.y < y && p.x < x){
-	
-	}else
+	}else if(p.y < y && p.x > x){ /*From upper left to bottom right*/
+		for(i=x+1, j=p.y+1; i<p.x && j<y; i++, j++)
+			if(cboard[i][j].name != ' ')
+				return 0;
+	}else if(p.y < y && p.x < x){ /*From bottom left to upper right*/
+		for(i=p.x+1, j=p.y+1; i<x && j<y; i++, j++)
+			if(cboard[i][j].name != ' ')
+				return 0;
+	}else /*Not possible ton move on the same square you were*/
 		return 0;
 	return 1;
 }
 
+/*Special pieces movement*/
 int knightMovement(piece p, int x, int y){/*MAX 8 movimenti totali concessi*/
 	if(cboard[x][y].color == p.color)
 		return 0;
@@ -202,7 +211,9 @@ int knightMovement(piece p, int x, int y){/*MAX 8 movimenti totali concessi*/
 }
 
 int pawnMovement(piece p, int x, int y){
-	if(p.y == y){
+	if(p.y == y){ /*Movimento normale*/
+		if(cboard[x][y].name != ' ')
+			return 0;
 		if(p.stx == 1){ /*Can only move downwards (forward from the player's perspective)*/
 			if(p.stx == p.x){	/*Is at starting point*/
 				if((x - p.x == 1 || x - p.x == 2) && verticalMovement(p, x, y)) /*Can only move 1 or 2 places away*/
@@ -219,7 +230,7 @@ int pawnMovement(piece p, int x, int y){
 					return 1;
 		}else
 			printf("Unexpected pawn here!\n");
-	}else{ /*Caso in cui il pedone è affamato*/
+	}else{ /*Mangiata*/
 		if(cboard[x][y].color == p.color || cboard[x][y].name == ' ')
 			return 0;
 		if(p.stx == 1){ /*Down*/
@@ -233,9 +244,21 @@ int pawnMovement(piece p, int x, int y){
 	}
 	return 0;
 }
-int movePiece(piece p, int x, int y){
+
+int move(int sx, int sy, int x, int y){
 	int ret;
+	piece p;
+
+	/*Sanitize Input*/
+	if(sx < CBL && sx >= 0 && sy < CBL && sy >= 0 && x < CBL && x >= 0 && y < CBL && y >= 0){
+		if(cboard[sx][sy].name == ' ')
+			return 0;
+	}else /*Out of bounds*/
+		return 0;
+
+	p = cboard[sx][sy];
 	ret = 0;
+
 	if(p.name == 'P'){
 		ret = pawnMovement(p, x, y);
 	}else if(p.name == 'B'){
@@ -262,10 +285,8 @@ int movePiece(piece p, int x, int y){
 				ret = horizontalMovement(p, x, y);
 		}
 	}
-
 	if(ret)
 		replace(p, cboard[x][y]);
-
 	return ret;
 }
 
@@ -288,15 +309,3 @@ void replace(piece p1, piece p2){
 	return ;
 }
 
-int move(int sy, int sx, int ay, int ax){ /*The player insert the squares in this order*/
-	int ret;
-	/*First thing: sanitize input*/
-	if(sx < CBL && sx >= 0 && sy < CBL && sy >= 0 && ax < CBL && ax >= 0 && ay < CBL && ay >= 0){
-		if(cboard[sx][sy].name == ' ')
-			ret = 0;
-		else
-			ret = movePiece(cboard[sx][sy], ax, ay);
-		return ret;
-	}
-	return 0;
-}
