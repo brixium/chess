@@ -1,7 +1,7 @@
-/*TODO: NEL MAIN DEL PROGRAMMA PRINCIPALE implementare il ciclo di gioco*/
-/*TODO: controllare che sia possibile mangiare i pezzi dell'avversario*/
-/*TODO: condizione di scacco al re*/
-/*TODO: fix pedone OverPowered (mangia anche per dritto)*/
+/*IMPROVE: NEL MAIN DEL PROGRAMMA PRINCIPALE implementare il ciclo di gioco*/
+/*OK: controllare che sia possibile mangiare i pezzi dell'avversario*/
+/*TODO: controllare movimenti in condizione di scacco al re*/
+/*TODO: REINCARNAZIONE PEDONI CHE ARRIVANO IN FONDO ALLA SCACCHIERA*/
 /*Remember how to set up a chessboard on chess.com*/
 /*FUTURE: EN PASSANT for pawns, arrocco (rook and king)*/
 #include <stdio.h>
@@ -38,6 +38,7 @@ int scacco, checkmate;
 void initCB();	/*Initializes the chessboard with sorted pieces*/
 void printCB();	/*Prints the chessboard with all pieces on it*/
 void replace(piece, piece); /*Replaces the piece on a square with the second one*/
+int iDoTheMovement(piece, piece, int);
 
 void initCB(){
 	int i, j;
@@ -122,18 +123,18 @@ void printCB(){
 	return;
 }
 
-int verticalMovement(piece p, int x, int y){
+int verticalMovement(piece p, piece d){
 	int i;
-	if(cboard[x][y].color == p.color) /*cant move on your own pieces*/
+	if(d.color == p.color) /*cant move on your own pieces*/
 		return 0;
-	if(p.y == y){ /*Same column is a requirement*/
-		if(p.x > x){ /*moves down*/
-			for(i=x+1; i<p.x; i++)
-				if(cboard[i][y].name != ' ')
+	if(p.y == d.y){ /*Same column is a requirement*/
+		if(p.x > d.x){ /*moves down*/
+			for(i=d.x+1; i<p.x; i++)
+				if(d.name != ' ')
 					return 0;
-		}else if(p.x < x){ /*moves up*/
-			for(i = p.x+1; i<x; i++)
-				if(cboard[i][y].name != ' ')
+		}else if(p.x < d.x){ /*moves up*/
+			for(i = p.x+1; i<d.x; i++)
+				if(d.name != ' ')
 					return 0;
 		}else /*You cant move to the same position you are in!*/
 			return 0;
@@ -142,19 +143,19 @@ int verticalMovement(piece p, int x, int y){
 	return 1;
 }
 
-int horizontalMovement(piece p, int x, int y){
+int horizontalMovement(piece p, piece d){
 	int j;
-	if(cboard[x][y].color == p.color)
+	if(d.color == p.color)
 		return 0;
-	if(p.x == x){ /*same row is a requirement*/
-		if(p.y > y){
-			for(j=p.y+1; j<y; j++)
-				if(cboard[x][j].name != ' ')
+	if(p.x == d.x){ /*same row is a requirement*/
+		if(p.y > d.y){
+			for(j=p.y+1; j<d.y; j++)
+				if(d.name != ' ')
 					return 0;
 			return 1;
-		}else if(p.y < y){
-			for(j=p.y+1; j<y; j++)
-				if(cboard[x][j].name != ' ')
+		}else if(p.y < d.y){
+			for(j=p.y+1; j<d.y; j++)
+				if(d.name != ' ')
 					return 0;
 			return 1;
 		}
@@ -162,28 +163,28 @@ int horizontalMovement(piece p, int x, int y){
 	return 0;
 }
 
-int diagonalMovement(piece p, int x, int y){ /*Il bishop può saltare i pezzi adiacenti*/
+int diagonalMovement(piece p, piece d){ /*Il bishop può saltare i pezzi adiacenti*/
 	int i, j;
-	if(cboard[x][y].color == p.color)
+	if(d.color == p.color)
 		return 0;
-	if(abs(p.y-y) != abs(p.x-x))
+	if(abs(p.y-d.y) != abs(p.x-d.x))
 		return 0;
-	if(p.y > y && p.x > x){ /*From bottom right to upper left*/
-		for(i=x+1, j=y+1; i<p.x && j<p.y; i++, j++)
-			if(cboard[i][j].name != ' ')
+	if(p.y > d.y && p.x > d.x){ /*From bottom right to upper left*/
+		for(i=d.x+1, j=d.y+1; i<p.x && j<p.y; i++, j++)
+			if(d.name != ' ')
 				return 0;
-	}else if(p.y > y && p.x < x){ /*From upper right to bottom left*/
-		for(i=p.x+1, j=y+1; i<x && j<p.y; i++, j++)
-			if(cboard[i][j].name != ' ')
+	}else if(p.y > d.y && p.x < d.x){ /*From upper right to bottom left*/
+		for(i=p.x+1, j=d.y+1; i<d.x && j<p.y; i++, j++)
+			if(d.name != ' ')
 				return 0;
 
-	}else if(p.y < y && p.x > x){ /*From upper left to bottom right*/
-		for(i=x+1, j=p.y+1; i<p.x && j<y; i++, j++)
-			if(cboard[i][j].name != ' ')
+	}else if(p.y < d.y && p.x > d.x){ /*From upper left to bottom right*/
+		for(i=d.x+1, j=p.y+1; i<p.x && j<d.y; i++, j++)
+			if(d.name != ' ')
 				return 0;
-	}else if(p.y < y && p.x < x){ /*From bottom left to upper right*/
-		for(i=p.x+1, j=p.y+1; i<x && j<y; i++, j++)
-			if(cboard[i][j].name != ' ')
+	}else if(p.y < d.y && p.x < d.x){ /*From bottom left to upper right*/
+		for(i=p.x+1, j=p.y+1; i<d.x && j<d.y; i++, j++)
+			if(d.name != ' ')
 				return 0;
 	}else /*Not possible ton move on the same square you were*/
 		return 0;
@@ -191,103 +192,116 @@ int diagonalMovement(piece p, int x, int y){ /*Il bishop può saltare i pezzi ad
 }
 
 /*Special pieces movement*/
-int knightMovement(piece p, int x, int y){/*MAX 8 movimenti totali concessi*/
-	if(cboard[x][y].color == p.color)
+int knightMovement(piece p, piece d){/*MAX 8 movimenti totali concessi*/
+	if(d.color == p.color)
 		return 0;
 	
-	if(x == p.x - 2)
-		if(y == p.y - 1 || y == p.y + 1)
+	if(d.x == p.x - 2)
+		if(d.y == p.y - 1 || d.y == p.y + 1)
 			return 1;
-	if(x == p.x + 2)
-		if(y == p.y - 1 || y == p.y + 1)
+	if(d.x == p.x + 2)
+		if(d.y == p.y - 1 || d.y == p.y + 1)
 			return 1;
-	if(y == p.y - 2)
-		if(x == p.x - 1 || x == p.x + 1)
+	if(d.y == p.y - 2)
+		if(d.x == p.x - 1 || d.x == p.x + 1)
 			return 1;
-	if(y == p.y + 2)
-		if(x == p.x - 1 || x == p.x + 1)
+	if(d.y == p.y + 2)
+		if(d.x == p.x - 1 || d.x == p.x + 1)
 			return 1;
 	return 0;
 }
 
-int pawnMovement(piece p, int x, int y){
-	if(p.y == y){ /*Movimento normale*/
-		if(cboard[x][y].name != ' ')
+int pawnMovement(piece p, piece d){
+	if(p.y == d.y){ /*Movimento normale*/
+		if(d.name != ' ')
 			return 0;
 		if(p.stx == 1){ /*Can only move downwards (forward from the player's perspective)*/
 			if(p.stx == p.x){	/*Is at starting point*/
-				if((x - p.x == 1 || x - p.x == 2) && verticalMovement(p, x, y)) /*Can only move 1 or 2 places away*/
+				if((d.x - p.x == 1 || d.x - p.x == 2) && verticalMovement(p, d)) /*Can only move 1 or 2 places away*/
 					return 1;
 			}else
-				if(((x - p.x) == 1) && verticalMovement(p, x, y))
+				if(((d.x - p.x) == 1) && verticalMovement(p, d))
 					return 1;
 		}else if(p.stx == 6){ /*Can only move upwards */
 			if(p.stx == p.x){ /*starting point*/
-				if((p.x - x == 1 || p.x - x == 2) && verticalMovement(p,x,y))
+				if((p.x - d.x == 1 || p.x - d.x == 2) && verticalMovement(p, d))
 					return 1;
 			}else
-				if(((p.x - x) == 1) && verticalMovement(p, x, y))
+				if(((p.x - d.x) == 1) && verticalMovement(p, d))
 					return 1;
 		}else
 			printf("Unexpected pawn here!\n");
 	}else{ /*Mangiata*/
-		if(cboard[x][y].color == p.color || cboard[x][y].name == ' ')
+		if(d.color == p.color || d.name == ' ')
 			return 0;
 		if(p.stx == 1){ /*Down*/
-			if(x == p.x + 1 && (y == p.y - 1 || y == p.y + 1))
+			if(d.x == p.x + 1 && (d.y == p.y - 1 || d.y == p.y + 1))
 				return 1;
 		}else if(p.stx == 6){ /*Up*/
-			if(x == p.x -1 && (y == p.y - 1 || y == p.y + 1))
+			if(d.x == p.x -1 && (d.y == p.y - 1 || d.y == p.y + 1))
 				return 1;
 		}else
 			printf("Unexpected pawn here!\n");
 	}
 	return 0;
 }
-
-int move(int sx, int sy, int x, int y){
+/*Takes 4 parameters as they're inserted by the user*/
+int move(int sx, int sy, int x, int y, char color){
 	int ret;
-	piece p;
-
+	piece p, a;
+	
 	/*Sanitize Input*/
+	if(color != 'B' && color != 'W')
+		return 0;
 	if(sx < CBL && sx >= 0 && sy < CBL && sy >= 0 && x < CBL && x >= 0 && y < CBL && y >= 0){
-		if(cboard[sx][sy].name == ' ')
+		if(cboard[sx][sy].name == ' ' || cboard[sx][sy].color != color)
 			return 0;
 	}else /*Out of bounds*/
 		return 0;
 
 	p = cboard[sx][sy];
+	a = cboard[x][y];
 	ret = 0;
+	
+	ret = iDoTheMovement(p, a, 1);
+	return ret;
+}
+/*Piece p moves towards destination d and ask if you want to replace or just check i possible (ret.1 if is fine, 0 if not)*/
+int iDoTheMovement(piece p, piece d, int really){
+	int r; /*return value: 1=ok, 0=ko*/
 
+	r = 0;
 	if(p.name == 'P'){
-		ret = pawnMovement(p, x, y);
+		r = pawnMovement(p, d);
 	}else if(p.name == 'B'){
-		ret = diagonalMovement(p, x, y);
+		r = diagonalMovement(p, d);
 	}else if(p.name == 'H'){
-		ret = knightMovement(p, x, y);
+		r = knightMovement(p, d);
 	}else if(p.name == 'R'){
-		if(p.x == x)
-			ret = horizontalMovement(p, x, y);
+		if(p.x == d.x)
+			r = horizontalMovement(p, d);
 		else
-			ret = verticalMovement(p, x, y);
+			r = verticalMovement(p, d);
 	}else if(p.name == 'Q'){
-		if(p.x == x)
-			ret = horizontalMovement(p, x, y);
-		else if(p.y == y)
-			ret = verticalMovement(p, x, y);
+		if(p.x == d.x)
+			r = horizontalMovement(p, d);
+		else if(p.y == d.y)
+			r = verticalMovement(p, d);
 		else
-			ret = diagonalMovement(p, x, y);
+			r = diagonalMovement(p, d);
 	}else if(p.name == 'K'){
-		if(abs(p.x - x) == 1 || abs(p.y - y) == 1){
-			if(p.x == x)
-				ret = horizontalMovement(p, x, y);
-			else if(p.y == y)
-				ret = horizontalMovement(p, x, y);
+		if(abs(p.x - d.x) == 1 || abs(p.y - d.y) == 1){
+			if(p.x == d.x)
+				r = horizontalMovement(p, d);
+			else if(p.y == d.y)
+				r = horizontalMovement(p, d);
 		}
 	}
-	if(ret)
-		replace(p, cboard[x][y]);
-	return ret;
+	if(r && really)
+		replace(p, d);
+	if(r)
+		return 1;
+	return 0;
 }
 
 void replace(piece p1, piece p2){
@@ -308,4 +322,25 @@ void replace(piece p1, piece p2){
 
 	return ;
 }
+/*Checks if the king of the specified color [B/W] is under scacco*/
+int isScacco(char color){
+	int i, j, flag;
+	piece king;
 
+	if(color != 'B' && color != 'W')
+		return 0;
+	flag = 1;
+	for(i=0; i<CBL && flag; i++)
+		for(j=0; j<CBL && flag; j++)
+			if(cboard[i][j].name == 'K' && cboard[i][j].color == color){
+				king = cboard[i][j];
+				flag = 0;
+			}
+	for(i=0; i<CBL; i++){
+		for(j=0; j<CBL; j++){
+			if(iDoTheMovement(cboard[i][j], king, 0))
+				return 1;
+		}
+	}
+	return 0;
+}
